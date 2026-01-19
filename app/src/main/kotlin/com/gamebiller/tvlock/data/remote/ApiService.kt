@@ -13,9 +13,9 @@ interface ApiService {
     
     /**
      * Pair a device with a station using a station code
-     * POST /api/tv-devices/pair
+     * POST /api/tv-devices?action=pair
      */
-    @POST("api/tv-devices/pair")
+    @POST("api/tv-devices?action=pair")
     suspend fun pairDevice(
         @Body request: PairDeviceRequest
     ): Response<PairDeviceResponse>
@@ -32,9 +32,9 @@ interface ApiService {
     
     /**
      * Send an audit event to the backend
-     * POST /api/tv-devices/audit
+     * POST /api/tv-devices?action=audit
      */
-    @POST("api/tv-devices/audit")
+    @POST("api/tv-devices?action=audit")
     suspend fun sendAuditEvent(
         @Body event: AuditEventRequest
     ): Response<Unit>
