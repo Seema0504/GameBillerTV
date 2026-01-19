@@ -109,7 +109,11 @@ class LockViewModel @Inject constructor(
         val status = repository.getStationStatus()
         
         // Check if we got a valid response
-        if (status == StationStatus.Unknown) {
+        if (status == StationStatus.TokenInvalid) {
+            Timber.w("Token invalid or device deleted from backend - Unpairing device")
+            repository.unpairDevice()
+            return
+        } else if (status == StationStatus.Unknown) {
             consecutiveFailures++
             Timber.w("Failed to get station status (failure $consecutiveFailures/$MAX_CONSECUTIVE_FAILURES)")
                         if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {

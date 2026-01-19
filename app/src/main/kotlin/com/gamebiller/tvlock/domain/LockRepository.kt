@@ -117,6 +117,8 @@ class LockRepository @Inject constructor(
                     return@withContext StationStatus.Unknown
                 }
                 
+                // TEST: Inject invalid token to force 401
+                // val authHeader = "Bearer INVALID_TOKEN_FOR_TESTING"
                 val authHeader = "Bearer ${deviceInfo.token}"
                 val response = apiService.getStationStatus(deviceInfo.stationId, authHeader)
                 
