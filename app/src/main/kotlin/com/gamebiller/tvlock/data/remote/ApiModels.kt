@@ -13,7 +13,10 @@ data class PairDeviceRequest(
     val stationCode: String,
     
     @Json(name = "device_id")
-    val deviceId: String
+    val deviceId: String,
+
+    @Json(name = "device_name")
+    val deviceName: String? = null
 )
 
 /**

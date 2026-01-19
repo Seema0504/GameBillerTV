@@ -19,7 +19,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         // Backend API configuration
-        buildConfigField("String", "API_BASE_URL", "\"https://gamerspot-1xw9i9rhs-seemabharanis-projects.vercel.app/\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://gamerspot-g5ucj66zy-seemabharanis-projects.vercel.app/\"")
+        // buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3002/\"") // Android Emulator Localhost
         buildConfigField("int", "POLLING_INTERVAL_SECONDS", "12")
         buildConfigField("int", "GRACE_PERIOD_SECONDS", "30")
     }
@@ -35,8 +36,8 @@ android {
         }
         debug {
             isDebuggable = true
-            // Use Vercel for debug as well instead of localhost
-            buildConfigField("String", "API_BASE_URL", "\"https://gamerspot-1xw9i9rhs-seemabharanis-projects.vercel.app/\"") 
+            // Use Vercel URL by default
+            buildConfigField("String", "API_BASE_URL", "\"https://gamerspot-g5ucj66zy-seemabharanis-projects.vercel.app/\"") 
         }
     }
 

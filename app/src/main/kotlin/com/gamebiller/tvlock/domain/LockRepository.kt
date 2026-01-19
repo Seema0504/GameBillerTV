@@ -52,7 +52,8 @@ class LockRepository @Inject constructor(
                 val deviceId = devicePreferences.getDeviceId()
                 val request = PairDeviceRequest(
                     stationCode = stationCode,
-                    deviceId = deviceId
+                    deviceId = deviceId,
+                    deviceName = android.os.Build.MODEL ?: "Unknown Android TV"
                 )
                 
                 Timber.d("Pairing device $deviceId with station code: $stationCode")
@@ -118,9 +119,10 @@ class LockRepository @Inject constructor(
                 }
                 
                 // TEST: Inject invalid token to force 401
-                // val authHeader = "Bearer INVALID_TOKEN_FOR_TESTING"
+                // TEST: SABOTAGE TOKEN TO FORCE UNPAIR
+                // val authHeader = "Bearer INVALID_TOKEN_FORCE_UNPAIR"
                 val authHeader = "Bearer ${deviceInfo.token}"
-                val response = apiService.getStationStatus(deviceInfo.stationId, authHeader)
+                val response = apiService.getStationStatus(stationId = deviceInfo.stationId, token = authHeader)
                 
                 if (response.isSuccessful && response.body() != null) {
                     val status = StationStatus.fromString(response.body()!!.status)
