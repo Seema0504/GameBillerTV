@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GameBiller Lock</string>
+    
+    <!-- Lock Screen -->
+    <string name="lock_title">SESSION NOT ACTIVE</string>
+    <string name="lock_subtitle">Please contact staff</string>
+    <string name="network_error">Network unavailable</string>
+    <string name="grace_period_active">Checking connection…</string>
+    
+    <!-- Pairing Screen -->
+    <string name="pairing_title">Device Pairing</string>
+    <string name="pairing_instruction">Enter the station code provided by staff</string>
+    <string name="station_code_hint">Station Code</string>
+    <string name="pair_button">Pair Device</string>
+    <string name="pairing_in_progress">Pairing…</string>
+    <string name="pairing_success">Device paired successfully</string>
+    <string name="pairing_error">Pairing failed. Please check the code and try again.</string>
+    
+    <!-- Status Polling Service -->
+    <string name="service_notification_title">GameBiller Lock Active</string>
+    <string name="service_notification_text">Monitoring station status</string>
+    
+    <!-- Admin Exit -->
+    <string name="admin_exit_title">Admin Access</string>
+    <string name="admin_exit_instruction">Enter PIN to exit kiosk mode</string>
+    <string name="admin_pin_hint">PIN</string>
+    <string name="admin_exit_button">Exit</string>
+    <string name="admin_pin_error">Incorrect PIN</string>
+</resources>
