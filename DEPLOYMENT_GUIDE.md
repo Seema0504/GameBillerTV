@@ -13,24 +13,36 @@ To effectively "lock" the TV screen (show a black overlay) when a customer's ses
 
 ---
 
-## 🛠️ Step 1: Installation (Sideloading)
+## 🛠️ Step 1: Installation
 
-Since this is a custom enterprise app, it is installed via USB (Sideloading).
+### Method 1: Easy Install (Recommended - No USB needed)
+This method uses the "Downloader" app found on all Android TVs.
+
+1.  **Open Google Play Store** on the TV.
+2.  Search for and install **"Downloader by AFTVnews"**.
+3.  Open **Downloader**.
+4.  In the URL bar, type your direct download code/URL:
+    *   **Code:** `[YOUR_SHORT_CODE]` (You must generate this, see below)
+    *   *Or URL:* `https://gamebiller.com/tv.apk`
+5.  Click **Go**. The file will download.
+6.  Click **Install**. (You may need to toggle "Allow from this source" in settings when prompted).
+
+> **For Admin/Developer:** To get a numeric code, upload your APK to your website or Google Drive (Direct Link), then paste that URL at [https://aftv.news](https://aftv.news) to generate a 5-digit code.
+
+### Method 2: USB Sideloading (Alternative)
+Use this if the TV is not connected to the internet securely or Downloader fails.
 
 1.  **Prepare the APK:**
-    *   Copy the `app-debug.apk` (or `release.apk`) to a USB drive.
+    *   Copy the `app-release.apk` to a USB drive.
     *   Insert the USB drive into the TV.
 
-2.  **Install a File Manager (First Time Only):**
+2.  **Install a File Manager:**
     *   On the TV, open **Google Play Store**.
-    *   Search for and install **"File Commander"** (or any file explorer).
+    *   Install **"File Commander"** (or similar).
 
-3.  **Install GameBiller TV:**
+3.  **Install:**
     *   Open **File Commander**.
-    *   Navigate to your USB Drive.
-    *   Select the GameBiller APK file.
-    *   If prompted, allow "Install from Unknown Sources".
-    *   Click **Install**.
+    *   Select the USB Drive -> Click the APK file -> **Install**.
 
 ---
 
