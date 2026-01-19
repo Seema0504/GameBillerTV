@@ -13,7 +13,13 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,13 +49,40 @@ fun LockScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Lock Icon
+            // Lock Icon (Hidden Backdoor: Click 5 times to exit)
+            var clickCount by remember { mutableIntStateOf(0) }
+            val context = androidx.compose.ui.platform.LocalContext.current
+            var showExitDialog by remember { mutableStateOf(false) }
+
             Icon(
                 imageVector = Icons.Default.Lock,
                 contentDescription = "Locked",
                 tint = Color(0xFFB0B0B0),
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier
+                    .size(120.dp)
+                    .clickable {
+                        clickCount++
+                        if (clickCount >= 5) {
+                            showExitDialog = true
+                            clickCount = 0
+                        }
+                    }
             )
+
+            if (showExitDialog) {
+                ExitDialog(
+                    onDismiss = { showExitDialog = false },
+                    onExit = {
+                        // Open Android Settings
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_SETTINGS)
+                        intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                        
+                        // Or minimize app
+                        // (context as? android.app.Activity)?.moveTaskToBack(true) 
+                    }
+                )
+            }
             
             Spacer(modifier = Modifier.height(32.dp))
             
@@ -128,4 +161,58 @@ fun LockScreen(
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
+
+@Composable
+private fun ExitDialog(
+    onDismiss: () -> Unit,
+    onExit: () -> Unit
+) {
+    var pin by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Emergency Exit") },
+        text = {
+            Column {
+                Text("Enter Admin PIN to exit:")
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.material3.OutlinedTextField(
+                    value = pin,
+                    onValueChange = { 
+                        if (it.length <= 4) pin = it 
+                        isError = false
+                    },
+                    singleLine = true,
+                    isError = isError,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    ),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
+                )
+                if (isError) {
+                    Text("Invalid PIN", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.Button(
+                onClick = {
+                    if (pin == "5555") {
+                        onExit()
+                    } else {
+                        isError = true
+                    }
+                }
+            ) {
+                Text("Exit App")
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
