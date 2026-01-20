@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,8 +33,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import com.gamebiller.tvlock.BuildConfig
 import com.gamebiller.tvlock.ui.viewmodel.PairingState
 import timber.log.Timber
+import android.app.Activity
 
 /**
  * Device pairing screen
@@ -47,6 +51,7 @@ fun PairingScreen(
 ) {
     Timber.d("PairingScreen composable called, state: $pairingState")
     var stationCode by remember { mutableStateOf("") }
+    val context = LocalContext.current
     
     Box(
         modifier = modifier
@@ -54,6 +59,25 @@ fun PairingScreen(
             .background(Color(0xFF0A0A0A)), // Dark background for TV
         contentAlignment = Alignment.Center
     ) {
+        // Debug-only Back button (top-right corner)
+        if (BuildConfig.DEBUG) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(24.dp)
+            ) {
+                Button(
+                    onClick = {
+                        (context as? Activity)?.finish()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF666666)
+                    )
+                ) {
+                    Text("Exit (Debug)", color = Color.White)
+                }
+            }
+        }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

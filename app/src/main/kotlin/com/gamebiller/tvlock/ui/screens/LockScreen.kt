@@ -4,12 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,8 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gamebiller.tvlock.BuildConfig
 import com.gamebiller.tvlock.domain.model.LockState
 import com.gamebiller.tvlock.domain.model.toDisplayText
+import android.app.Activity
 
 /**
  * Full-screen lock overlay
@@ -39,12 +45,33 @@ fun LockScreen(
     lockState: LockState,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFF0A0A0A)),
         contentAlignment = Alignment.Center
     ) {
+        // Debug-only Back button (top-right corner)
+        if (BuildConfig.DEBUG) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(24.dp)
+            ) {
+                Button(
+                    onClick = {
+                        (context as? Activity)?.finish()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF666666)
+                    )
+                ) {
+                    Text("Exit (Debug)", color = Color.White)
+                }
+            }
+        }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
