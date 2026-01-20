@@ -92,8 +92,15 @@ class LockRepository @Inject constructor(
                     Timber.d("Device paired successfully: ${deviceInfo.shopName} - ${deviceInfo.stationName}")
                     Result.success(deviceInfo)
                 } else {
-                    val errorMsg = "Pairing failed: ${response.code()} ${response.message()}"
+                    val errorMsg = "Pairing failed: ${response.code()}"
                     Timber.e(errorMsg)
+                    
+                    // Auto-fix for Duplicate Key (400): Reset Device ID so next attempt uses a fresh one
+                    if (response.code() == 400) {
+                        Timber.w("Collision detected (400). Resetting local Device ID to resolve unique constraint.")
+                        devicePreferences.clearPairingData()
+                    }
+                    
                     Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {

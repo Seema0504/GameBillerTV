@@ -267,7 +267,18 @@ class LockViewModel @Inject constructor(
                         metadata = meta
                     )
                 )
-           }
+            }
+        }
+    }
+    
+    /**
+     * Trigger manual unpair from UI (Admin Reset)
+     */
+    fun triggerUnpair() {
+        viewModelScope.launch {
+            repository.unpairDevice()
+            _lockState.value = LockState.Unpaired
+            Timber.d("Manual unpair triggered")
         }
     }
 }

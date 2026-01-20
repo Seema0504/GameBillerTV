@@ -47,6 +47,7 @@ import android.app.Activity
 fun PairingScreen(
     pairingState: PairingState,
     onPairClick: (String) -> Unit,
+    onExit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Timber.d("PairingScreen composable called, state: $pairingState")
@@ -59,23 +60,19 @@ fun PairingScreen(
             .background(Color(0xFF0A0A0A)), // Dark background for TV
         contentAlignment = Alignment.Center
     ) {
-        // Debug-only Back button (top-right corner)
-        if (BuildConfig.DEBUG) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(24.dp)
+        // Exit App Button (Kill Switch)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(24.dp)
+        ) {
+            Button(
+                onClick = onExit,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF666666)
+                )
             ) {
-                Button(
-                    onClick = {
-                        (context as? Activity)?.finish()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF666666)
-                    )
-                ) {
-                    Text("Exit (Debug)", color = Color.White)
-                }
+                Text("Exit App", color = Color.White)
             }
         }
         Column(
@@ -134,7 +131,7 @@ fun PairingScreen(
             // Pair Button
             Button(
                 onClick = { onPairClick(stationCode) },
-                enabled = stationCode.isNotBlank() && pairingState !is PairingState.Loading,
+                enabled = stationCode.isNotBlank() && pairingState !is PairingState.Loading && pairingState !is PairingState.Success,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF2196F3),
                     disabledContainerColor = Color(0xFF404040)
@@ -143,7 +140,7 @@ fun PairingScreen(
                     .width(400.dp)
                     .height(64.dp)
             ) {
-                if (pairingState is PairingState.Loading) {
+                if (pairingState is PairingState.Loading || pairingState is PairingState.Success) {
                     CircularProgressIndicator(
                         color = Color.White,
                         modifier = Modifier.size(24.dp)
@@ -170,15 +167,9 @@ fun PairingScreen(
                 )
             }
             
-            // Success Message
+            // Success Message (Hidden to avoid flicker during redirection)
             if (pairingState is PairingState.Success) {
-                Text(
-                    text = "✓ Device paired successfully!",
-                    fontSize = 20.sp,
-                    color = Color(0xFF4CAF50),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // No text needed, we are redirecting
             }
         }
     }

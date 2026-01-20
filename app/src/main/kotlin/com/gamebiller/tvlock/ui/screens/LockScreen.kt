@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -29,12 +30,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gamebiller.tvlock.BuildConfig
 import com.gamebiller.tvlock.domain.model.LockState
 import com.gamebiller.tvlock.domain.model.toDisplayText
 import android.app.Activity
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 
 /**
  * Full-screen lock overlay
@@ -43,9 +50,96 @@ import android.app.Activity
 @Composable
 fun LockScreen(
     lockState: LockState,
+    onUnpair: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // Admin Reset State
+    var clickCount by remember { mutableIntStateOf(0) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var pinInput by remember { mutableStateOf("") }
+    var pinError by remember { mutableStateOf(false) }
+    
+    // Reset click count after 3 seconds of inactivity
+    LaunchedEffect(clickCount) {
+        if (clickCount > 0) {
+            kotlinx.coroutines.delay(3000)
+            clickCount = 0
+        }
+    }
+    
+    if (showPinDialog) {
+        AlertDialog(
+            onDismissRequest = { showPinDialog = false },
+            title = { Text("Enter Admin PIN") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = pinInput,
+                        onValueChange = { 
+                            if (it.length <= 4 && it.all { char -> char.isDigit() }) {
+                                pinInput = it
+                                pinError = false
+                            }
+                        },
+                        label = { Text("PIN") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        isError = pinError
+                    )
+                    if (pinError) {
+                        Text(
+                            text = "Incorrect PIN",
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { 
+                    if (pinInput == "5555") {
+                        showPinDialog = false
+                        showConfirmDialog = true
+                    } else {
+                        pinError = true
+                    }
+                }) {
+                    Text("Submit")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPinDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Admin Reset") },
+            text = { Text("Unpair this device? This will require re-pairing.") },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showConfirmDialog = false
+                    onUnpair()
+                }) {
+                    Text("Unpair")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
     
     Box(
         modifier = modifier
@@ -76,38 +170,25 @@ fun LockScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Lock Icon (Hidden Backdoor: Click 5 times to exit)
-            var clickCount by remember { mutableIntStateOf(0) }
-            val context = androidx.compose.ui.platform.LocalContext.current
-            var showExitDialog by remember { mutableStateOf(false) }
+            // Lock Icon (Hidden Admin Reset)
 
-            Icon(
-                imageVector = Icons.Default.Lock,
-                contentDescription = "Locked",
-                tint = Color(0xFFB0B0B0),
-                modifier = Modifier
-                    .size(120.dp)
-                    .clickable {
-                        clickCount++
-                        if (clickCount >= 5) {
-                            showExitDialog = true
-                            clickCount = 0
-                        }
+            androidx.compose.material3.IconButton(
+                onClick = {
+                    clickCount++
+                    if (clickCount >= 5) {
+                        showPinDialog = true
+                        clickCount = 0
+                        pinInput = ""
+                        pinError = false
                     }
-            )
-
-            if (showExitDialog) {
-                ExitDialog(
-                    onDismiss = { showExitDialog = false },
-                    onExit = {
-                        // Open Android Settings
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_SETTINGS)
-                        intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                        context.startActivity(intent)
-                        
-                        // Or minimize app
-                        // (context as? android.app.Activity)?.moveTaskToBack(true) 
-                    }
+                },
+                modifier = Modifier.size(160.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Lock,
+                    contentDescription = "Admin Reset",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(120.dp)
                 )
             }
             

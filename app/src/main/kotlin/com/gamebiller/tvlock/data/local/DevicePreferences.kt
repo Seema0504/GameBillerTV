@@ -114,12 +114,14 @@ class DevicePreferences @Inject constructor(
      */
     suspend fun clearPairingData() {
         dataStore.edit { prefs ->
+            prefs.remove(KEY_DEVICE_ID) // Generate new ID on next run
+            prefs.remove(KEY_TOKEN) // Clear token
             prefs.remove(KEY_SHOP_ID)
             prefs.remove(KEY_STATION_ID)
             prefs.remove(KEY_SHOP_NAME)
             prefs.remove(KEY_STATION_NAME)
             prefs[KEY_IS_PAIRED] = false
         }
-        Timber.d("Cleared pairing data")
+        Timber.d("Cleared pairing data (Factory Reset)")
     }
 }
