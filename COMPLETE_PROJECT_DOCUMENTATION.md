@@ -1,6 +1,6 @@
 # GameBillerTV - Complete Project Documentation
 **Version:** 1.0.0  
-**Last Updated:** January 20, 2026  
+**Last Updated:** January 21, 2026  
 **Platform:** Android TV (API 26+)
 
 ---
@@ -642,6 +642,18 @@ adb install -r "app\build\outputs\apk\debug\app-debug.apk"
 - ✅ Dropbox (change `dl=0` to `dl=1`)
 - ❌ Google Drive (doesn't work with Downloader)
 
+### Method 4: Fire TV Native Launcher Setup (Critical)
+To force the app as the **Default Launcher** on Fire OS (which normally blocks this), run this ADB command after installation:
+
+```powershell
+adb shell pm disable-user --user 0 com.amazon.tv.launcher
+```
+
+To revert this change:
+```powershell
+adb shell pm enable com.amazon.tv.launcher
+```
+
 ---
 
 ### Method 3: USB Sideloading
@@ -694,8 +706,8 @@ Settings → Applications → Manage Installed Applications → GameBiller TV Lo
 - **Auto-lock**: After grace period expires
 
 #### 4. Emergency Exit
-- **Trigger**: Click lock icon 5 times rapidly
-- **PIN Protection**: Requires PIN `5555`
+- **Trigger**: Click lock icon 10 times rapidly
+- **PIN Protection**: Requires PIN `1100`
 - **Action**: Opens Android Settings
 - **Use Case**: Shop owner maintenance access
 
@@ -798,8 +810,8 @@ Settings → Applications → Manage Installed Applications → GameBiller TV Lo
 
 #### Test 5: Emergency Exit
 **Steps**:
-1. On lock screen, click lock icon 5 times rapidly
-2. Enter PIN: `5555`
+1. On lock screen, click lock icon 10 times rapidly
+2. Enter PIN: `1100`
 3. Click "Exit"
 
 **Expected Result**:
@@ -980,14 +992,15 @@ override fun onBackPressed() {
 
 #### Features Implemented
 - ✅ Device pairing with station code
-- ✅ Real-time lock/unlock based on session status
+- ✅ Real-time lock/unlock based on session status (Minimize on Unlock)
 - ✅ Grace period on network loss
-- ✅ Emergency exit (5-click + PIN)
+- ✅ Emergency exit (10-click + PIN 1100)
 - ✅ Debug exit button (Debug builds only)
 - ✅ Audit event logging with offline queue
 - ✅ Auto-restart on boot and crash
 - ✅ Encrypted local storage
 - ✅ Hybrid routing (Localhost + Vercel compatibility)
+- ✅ **Release Build**: ProGuard rules fixed, Signing Configured
 
 #### Backend Integration
 - ✅ Hybrid routing strategy for Localhost and Vercel
@@ -1103,8 +1116,8 @@ adb connect 192.168.1.100:5555
 | `API_BASE_URL` | Vercel URL | `build.gradle.kts` | Backend endpoint |
 | `POLLING_INTERVAL_SECONDS` | 12 | `build.gradle.kts` | Status check frequency |
 | `GRACE_PERIOD_SECONDS` | 30 | `build.gradle.kts` | Network loss buffer |
-| `EMERGENCY_PIN` | 5555 | `LockScreen.kt` | Emergency exit PIN |
-| `CLICK_COUNT_TRIGGER` | 5 | `LockScreen.kt` | Emergency exit clicks |
+| `EMERGENCY_PIN` | 1100 | `LockScreen.kt` | Emergency exit PIN |
+| `CLICK_COUNT_TRIGGER` | 10 | `LockScreen.kt` | Emergency exit clicks |
 
 ---
 

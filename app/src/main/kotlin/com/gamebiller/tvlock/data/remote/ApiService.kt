@@ -13,30 +13,30 @@ interface ApiService {
     
     /**
      * Pair a device with a station using a station code
-     * POST /api/tv-devices/pair (Hybrid Routing: Explicit path for pairing)
+     * POST /api/tvdevices/tvsettings?action=pair
      */
-    @POST("api/tv-devices/pair")
+    @POST("api/tvdevices/tvsettings?action=pair")
     suspend fun pairDevice(
         @Body request: PairDeviceRequest
     ): Response<PairDeviceResponse>
     
     /**
      * Get the current status of a station
-     * GET /api/tv-devices?action=status&station_id={id} (Hybrid Routing: Query param for status)
+     * GET /api/tvdevices/tvsettings?action=status
      */
-    @GET("api/tv-devices")
+    @GET("api/tvdevices/tvsettings")
     suspend fun getStationStatus(
         @retrofit2.http.Query("action") action: String = "status",
-        @retrofit2.http.Query("station_id") stationId: Int,
         @retrofit2.http.Header("Authorization") token: String
     ): Response<StationStatusResponse>
     
     /**
      * Send an audit event to the backend
-     * POST /api/tv-devices?action=audit
+     * POST /api/tvdevices/tvsettings?action=audit
      */
-    @POST("api/tv-devices?action=audit")
+    @POST("api/tvdevices/tvsettings?action=audit")
     suspend fun sendAuditEvent(
+        @retrofit2.http.Header("Authorization") token: String,
         @Body event: AuditEventRequest
     ): Response<Unit>
 }

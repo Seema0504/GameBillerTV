@@ -6,7 +6,7 @@ This document outlines the backend changes needed to support the Android TV lock
 
 ### 1. Device Pairing Endpoint
 
-**Endpoint**: `POST /api/tv-devices/pair`
+**Endpoint**: `POST /api/tvdevices/tvsettings?action=pair`
 
 **Purpose**: Pair an Android TV device with a specific station using a station code.
 
@@ -14,115 +14,32 @@ This document outlines the backend changes needed to support the Android TV lock
 ```json
 {
   "station_code": "ABC123",
-  "device_id": "TV-A1B2C3D4"
-}
-```
-
-**Response** (Success - 200):
-```json
-{
-  "shop_id": 1,
-  "station_id": 3,
   "device_id": "TV-A1B2C3D4",
-  "shop_name": "ABC Gaming Zone",
-  "station_name": "PS-1"
+  "device_name": "Living Room TV"
 }
 ```
-
-**Response** (Error - 400/404):
-```json
-{
-  "error": "Invalid station code",
-  "message": "Station code not found or already paired"
-}
-```
-
-**Implementation Notes**:
-- Generate unique station codes for each station (e.g., 6-character alphanumeric)
-- Store station code in `stations` table or create new `station_codes` table
-- Validate that station code is active and not already paired
-- Create record in `tv_devices` table
-- Return shop and station details for display on TV
 
 ---
 
 ### 2. Station Status Endpoint
 
-**Endpoint**: `GET /api/stations/{station_id}/status`
+**Endpoint**: `GET /api/tvdevices/tvsettings?action=status`
 
 **Purpose**: Get current status of a station to determine if TV should be locked or unlocked.
 
-**Response** (Success - 200):
-```json
-{
-  "station_id": 3,
-  "status": "RUNNING",
-  "shop_name": "ABC Gaming Zone",
-  "station_name": "PS-1"
-}
-```
-
-**Status Values**:
-- `"RUNNING"` - Station is actively running (TV unlocked)
-- `"STOPPED"` - Station is stopped (TV locked)
-- `"PAUSED"` - Station is paused (TV locked)
-- `"NOT_STARTED"` - Station has not started (TV locked)
-
-**Implementation Notes**:
-- Map existing `stations` table fields to status:
-  - `is_running = true` → `"RUNNING"`
-  - `is_paused = true` → `"PAUSED"`
-  - `is_done = true` → `"STOPPED"`
-  - Otherwise → `"NOT_STARTED"`
-- This endpoint should be lightweight (no auth required for MVP)
-- Consider caching to reduce database load
-
-**Example Implementation** (Node.js/Express):
-```javascript
-// In api/stations.js
-app.get('/api/stations/:station_id/status', async (req, res) => {
-  const { station_id } = req.params;
-  
-  const result = await db.query(
-    `SELECT s.id, s.name as station_name, s.is_running, s.is_paused, s.is_done,
-            sh.name as shop_name
-     FROM stations s
-     JOIN shops sh ON s.shop_id = sh.id
-     WHERE s.id = $1`,
-    [station_id]
-  );
-  
-  if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Station not found' });
-  }
-  
-  const station = result.rows[0];
-  let status = 'NOT_STARTED';
-  
-  if (station.is_running) {
-    status = 'RUNNING';
-  } else if (station.is_paused) {
-    status = 'PAUSED';
-  } else if (station.is_done) {
-    status = 'STOPPED';
-  }
-  
-  res.json({
-    station_id: station.id,
-    status: status,
-    shop_name: station.shop_name,
-    station_name: station.station_name
-  });
-});
-```
+**Headers**:
+- `Authorization`: `Bearer <token>`
 
 ---
 
 ### 3. Audit Event Endpoint
 
-**Endpoint**: `POST /api/tv-devices/audit`
+**Endpoint**: `POST /api/tvdevices/tvsettings?action=audit`
 
 **Purpose**: Log audit events from TV devices for monitoring and compliance.
+
+**Headers**:
+- `Authorization`: `Bearer <token>`
 
 **Request Body**:
 ```json

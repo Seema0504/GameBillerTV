@@ -77,6 +77,16 @@ class DevicePreferences @Inject constructor(
         }
         Timber.d("Saved pairing info: ${deviceInfo.shopName} - ${deviceInfo.stationName}")
     }
+
+    /**
+     * Update shop and station names only
+     */
+    suspend fun updateStationNames(shopName: String, stationName: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_SHOP_NAME] = shopName
+            prefs[KEY_STATION_NAME] = stationName
+        }
+    }
     
     /**
      * Get device pairing information as Flow

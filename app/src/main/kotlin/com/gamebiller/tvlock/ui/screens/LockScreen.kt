@@ -102,7 +102,7 @@ fun LockScreen(
             },
             confirmButton = {
                 TextButton(onClick = { 
-                    if (pinInput == "5555") {
+                    if (pinInput == "1100") {
                         showPinDialog = false
                         showConfirmDialog = true
                     } else {
@@ -147,25 +147,7 @@ fun LockScreen(
             .background(Color(0xFF0A0A0A)),
         contentAlignment = Alignment.Center
     ) {
-        // Debug-only Back button (top-right corner)
-        if (BuildConfig.DEBUG) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(24.dp)
-            ) {
-                Button(
-                    onClick = {
-                        (context as? Activity)?.finish()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF666666)
-                    )
-                ) {
-                    Text("Exit (Debug)", color = Color.White)
-                }
-            }
-        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -175,7 +157,7 @@ fun LockScreen(
             androidx.compose.material3.IconButton(
                 onClick = {
                     clickCount++
-                    if (clickCount >= 5) {
+                    if (clickCount >= 10) {
                         showPinDialog = true
                         clickCount = 0
                         pinInput = ""
@@ -212,17 +194,10 @@ fun LockScreen(
             // Shop and Station info
             when (lockState) {
                 is LockState.Locked -> {
-                    if (lockState.shopName != null) {
-                        Text(
-                            text = lockState.shopName,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFFB0B0B0),
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    // Shop name removed as per request
+                    
                     if (lockState.stationName != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        // Spacer(modifier = Modifier.height(8.dp)) // Removed spacer since shop name is gone
                         Text(
                             text = "Station: ${lockState.stationName}",
                             fontSize = 28.sp,
@@ -230,24 +205,12 @@ fun LockScreen(
                             textAlign = TextAlign.Center
                         )
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = lockState.reason.toDisplayText(),
-                        fontSize = 24.sp,
-                        color = Color(0xFF606060),
-                        textAlign = TextAlign.Center
-                    )
+                    // Redundant "Session Stopped" text removed as per request
                 }
                 
                 is LockState.GracePeriod -> {
-                    Text(
-                        text = lockState.shopName,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFFB0B0B0),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Shop name removed as per request
+
                     Text(
                         text = "Station: ${lockState.stationName}",
                         fontSize = 28.sp,
@@ -307,7 +270,7 @@ private fun ExitDialog(
         confirmButton = {
             androidx.compose.material3.Button(
                 onClick = {
-                    if (pin == "5555") {
+                    if (pin == "1100") {
                         onExit()
                     } else {
                         isError = true

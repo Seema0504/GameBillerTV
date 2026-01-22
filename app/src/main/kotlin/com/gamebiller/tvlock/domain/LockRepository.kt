@@ -129,11 +129,23 @@ class LockRepository @Inject constructor(
                 // TEST: SABOTAGE TOKEN TO FORCE UNPAIR
                 // val authHeader = "Bearer INVALID_TOKEN_FORCE_UNPAIR"
                 val authHeader = "Bearer ${deviceInfo.token}"
-                val response = apiService.getStationStatus(stationId = deviceInfo.stationId, token = authHeader)
+                val response = apiService.getStationStatus(token = authHeader)
                 
                 if (response.isSuccessful && response.body() != null) {
-                    val status = StationStatus.fromString(response.body()!!.status)
+                    val body = response.body()!!
+                    val status = StationStatus.fromString(body.status)
+                    
+                    // Sync names if provided (Dynamic updates)
+                    if (!body.shopName.isNullOrBlank() && !body.stationName.isNullOrBlank()) {
+                         if (body.shopName != deviceInfo.shopName || body.stationName != deviceInfo.stationName) {
+                             Timber.d("Syncing updated station info: ${body.shopName} - ${body.stationName}")
+                             devicePreferences.updateStationNames(body.shopName, body.stationName)
+                         }
+                    }
+                    
                     Timber.d("Station status: $status")
+                    // If we just updated the name, we should technically return it, but ViewModel uses cached DeviceInfo.
+                    // The NEXT poll will see the new name.
                     status
                 } else {
                     Timber.e("Failed to get station status: ${response.code()} ${response.message()}")
@@ -202,6 +214,14 @@ class LockRepository @Inject constructor(
             val pendingLogs = auditDao.getAllLogs()
             if (pendingLogs.isEmpty()) return
 
+            // Fetch token for API calls
+            val deviceInfo = devicePreferences.getDeviceInfo().first()
+            if (deviceInfo == null || deviceInfo.token.isBlank()) {
+               Timber.w("Cannot flush logs: No token available")
+               return
+            }
+            val authHeader = "Bearer ${deviceInfo.token}"
+
             Timber.d("Flushing ${pendingLogs.size} pending audit logs")
 // ... logic continues ...
 
@@ -223,7 +243,7 @@ class LockRepository @Inject constructor(
                 )
 
                 try {
-                    val response = apiService.sendAuditEvent(request)
+                    val response = apiService.sendAuditEvent(authHeader, request)
                     if (response.isSuccessful) {
                         logsToDelete.add(log.id)
                     } else {

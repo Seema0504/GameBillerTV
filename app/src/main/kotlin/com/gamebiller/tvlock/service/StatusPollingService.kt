@@ -84,6 +84,9 @@ class StatusPollingService : Service() {
                         // If Unknown (network fail), it's != Running, so it LOCKS. This is safe.
                         val shouldBeLocked = status != com.gamebiller.tvlock.domain.model.StationStatus.Running
                         isLocked.set(shouldBeLocked)
+                    } else {
+                        // If unpaired, ensure we don't keep locking
+                        isLocked.set(false)
                     }
                 } catch (e: Exception) {
                     Timber.e(e, "Error in status polling")

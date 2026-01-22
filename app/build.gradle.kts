@@ -18,17 +18,27 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // Backend API configuration
-        buildConfigField("String", "API_BASE_URL", "\"https://gamerspot-g5ucj66zy-seemabharanis-projects.vercel.app/\"")
+        // Backend API configuration - PRODUCTION
+        buildConfigField("String", "API_BASE_URL", "\"https://www.gamebiller.com/\"")
         // buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3002/\"") // Android Emulator Localhost
         buildConfigField("int", "POLLING_INTERVAL_SECONDS", "12")
         buildConfigField("int", "GRACE_PERIOD_SECONDS", "30")
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("android_keystore.jks")
+            storePassword = "GameBiller2026"
+            keyAlias = "gamebiller"
+            keyPassword = "GameBiller2026"
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -36,8 +46,8 @@ android {
         }
         debug {
             isDebuggable = true
-            // Use Vercel URL by default
-            buildConfigField("String", "API_BASE_URL", "\"https://gamerspot-g5ucj66zy-seemabharanis-projects.vercel.app/\"") 
+            // Use Production URL for final testing
+            buildConfigField("String", "API_BASE_URL", "\"https://www.gamebiller.com/\"") 
         }
     }
 

@@ -66,6 +66,16 @@ class MainActivity : ComponentActivity() {
         // Keep screen on
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         
+        // Check for Overlay Permission (Required for background activity start on Android 10+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
+            Timber.w("Overlay permission missing - requesting")
+            val intent = Intent(
+                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                android.net.Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+        }
+
         // Start foreground service (request permission if needed)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -121,20 +131,10 @@ class MainActivity : ComponentActivity() {
     private fun handleLockStateChange(state: LockState) {
         when (state) {
             is LockState.Unlocked -> {
-                Timber.d("TV unlocked - launching Fire TV launcher")
-                // Launch the Fire TV launcher
-                try {
-                    val intent = Intent(Intent.ACTION_MAIN).apply {
-                        addCategory(Intent.CATEGORY_HOME)
-                        // Exclude our app from the launcher selection
-                        `package` = "com.amazon.tv.launcher"
-                    }
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    Timber.e(e, "Failed to launch Fire TV launcher")
-                    // Fallback: just minimize
-                    moveTaskToBack(true)
-                }
+                Timber.d("TV unlocked - finishing activity")
+                // Finish the activity to completely remove it from the screen.
+                // The StatusPollingService will automatically restart it when the state becomes Locked.
+                finish()
             }
             is LockState.Locked, is LockState.GracePeriod -> {
                 Timber.d("TV locked - bringing app to foreground")
