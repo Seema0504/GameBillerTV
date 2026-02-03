@@ -7,6 +7,8 @@ enum class LockReason {
     SESSION_NOT_STARTED,
     SESSION_NOT_ACTIVE,
     TOKEN_INVALID,
+    FEATURE_DISABLED,  // HTTP 403 - subscription lapsed, remain paired
+    RATE_LIMITED,      // HTTP 429 - backend rate limit
     APP_RESTART
 }
 
@@ -17,5 +19,7 @@ fun LockReason.toDisplayText(): String = when (this) {
     LockReason.SESSION_NOT_STARTED -> "Session Not Started"
     LockReason.SESSION_NOT_ACTIVE -> "Session Not Active"
     LockReason.TOKEN_INVALID -> "Authorization Error"
+    LockReason.FEATURE_DISABLED -> "Feature Temporarily Unavailable"
+    LockReason.RATE_LIMITED -> "Please Wait..."
     LockReason.APP_RESTART -> "System Restarted"
 }

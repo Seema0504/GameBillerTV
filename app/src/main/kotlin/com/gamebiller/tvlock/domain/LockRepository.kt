@@ -114,6 +114,13 @@ class LockRepository @Inject constructor(
      * Get current station status from backend
      * Note: This no longer triggers side-effect flushing internally.
      * The Caller (ViewModel) must call flushAuditLogs() separately.
+     * 
+     * BACKEND CONTRACT (CRITICAL - DO NOT MODIFY):
+     * - HTTP 200 → Parse status (RUNNING/STOPPED/PAUSED/NOT_STARTED)
+     * - HTTP 401 → TokenInvalid → MUST unpair device
+     * - HTTP 403 → FeatureDisabled → MUST remain paired, just lock
+     * - HTTP 429 → RateLimited → Back off, remain paired
+     * - HTTP 5xx → Unknown → Fail-safe lock, remain paired
      */
     suspend fun getStationStatus(): StationStatus {
         return kotlinx.coroutines.withContext(ioDispatcher) {
@@ -125,9 +132,6 @@ class LockRepository @Inject constructor(
                     return@withContext StationStatus.Unknown
                 }
                 
-                // TEST: Inject invalid token to force 401
-                // TEST: SABOTAGE TOKEN TO FORCE UNPAIR
-                // val authHeader = "Bearer INVALID_TOKEN_FORCE_UNPAIR"
                 val authHeader = "Bearer ${deviceInfo.token}"
                 val response = apiService.getStationStatus(token = authHeader)
                 
@@ -144,22 +148,60 @@ class LockRepository @Inject constructor(
                     }
                     
                     Timber.d("Station status: $status")
-                    // If we just updated the name, we should technically return it, but ViewModel uses cached DeviceInfo.
-                    // The NEXT poll will see the new name.
                     status
                 } else {
-                    Timber.e("Failed to get station status: ${response.code()} ${response.message()}")
-                    // Explicitly map auth errors
-                    if (response.code() == 401 || response.code() == 403) {
-                         StationStatus.TokenInvalid
-                    } else {
-                         StationStatus.Unknown
+                    // CRITICAL: Proper HTTP error handling per backend contract
+                    val httpCode = response.code()
+                    Timber.e("Failed to get station status: $httpCode ${response.message()}")
+                    
+                    when (httpCode) {
+                        // HTTP 401: Token revoked/invalid - MUST trigger unpair
+                        401 -> {
+                            Timber.w("HTTP 401: Token invalid/revoked - device must unpair")
+                            StationStatus.TokenInvalid
+                        }
+                        
+                        // HTTP 403: Feature disabled (subscription lapsed, etc.)
+                        // MUST remain paired - NEVER clear token on 403
+                        403 -> {
+                            Timber.w("HTTP 403: Feature disabled - device remains paired, locking screen")
+                            StationStatus.FeatureDisabled
+                        }
+                        
+                        // HTTP 429: Rate limited - back off polling
+                        429 -> {
+                            val retryAfter = parseRetryAfterHeader(response.headers()["Retry-After"])
+                            Timber.w("HTTP 429: Rate limited, retry after ${retryAfter}s")
+                            StationStatus.RateLimited(retryAfter)
+                        }
+                        
+                        // All other errors (5xx, network, etc.) - fail-safe lock
+                        else -> {
+                            Timber.w("HTTP $httpCode: Unknown error - fail-safe lock")
+                            StationStatus.Unknown
+                        }
                     }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error getting station status")
                 StationStatus.Unknown
             }
+        }
+    }
+    
+    /**
+     * Parse Retry-After header from rate limit response
+     * Returns seconds to wait, defaults to 60 if header missing/invalid
+     */
+    private fun parseRetryAfterHeader(retryAfter: String?): Int {
+        if (retryAfter.isNullOrBlank()) return 60
+        
+        return try {
+            // Try parsing as seconds (e.g., "120")
+            retryAfter.toIntOrNull() ?: 60
+        } catch (e: Exception) {
+            Timber.w("Failed to parse Retry-After header: $retryAfter")
+            60
         }
     }
     

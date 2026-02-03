@@ -21,7 +21,7 @@ android {
         // Backend API configuration - PRODUCTION
         buildConfigField("String", "API_BASE_URL", "\"https://www.gamebiller.com/\"")
         // buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3002/\"") // Android Emulator Localhost
-        buildConfigField("int", "POLLING_INTERVAL_SECONDS", "12")
+        buildConfigField("int", "POLLING_INTERVAL_SECONDS", "30")
         buildConfigField("int", "GRACE_PERIOD_SECONDS", "30")
     }
 
@@ -46,8 +46,8 @@ android {
         }
         debug {
             isDebuggable = true
-            // Use Production URL for final testing
-            buildConfigField("String", "API_BASE_URL", "\"https://www.gamebiller.com/\"") 
+            // Use 10.0.2.2 for Android emulator (maps to host machine's localhost)
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3002/\"") 
         }
     }
 
@@ -72,6 +72,15 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    applicationVariants.all {
+        if (buildType.name == "release") {
+            outputs.all {
+                val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
+                output?.outputFileName = "GameBillerTv.apk"
+            }
         }
     }
 }

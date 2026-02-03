@@ -3,6 +3,13 @@ package com.gamebiller.tvlock.domain.model
 /**
  * Represents the current status of a GameBiller station
  * Determines whether the TV should be locked or unlocked
+ * 
+ * BACKEND CONTRACT:
+ * - 200 → Running/Stopped/Paused/NotStarted (normal operation)
+ * - 401 → TokenInvalid (device revoked, MUST unpair)
+ * - 403 → FeatureDisabled (subscription lapsed, MUST remain paired)
+ * - 429 → RateLimited (back off polling)
+ * - 5xx → Unknown (fail-safe lock)
  */
 sealed class StationStatus {
     /**
@@ -31,9 +38,23 @@ sealed class StationStatus {
     data object Unknown : StationStatus()
     
     /**
-     * The authentication token is invalid or expired - TV should be LOCKED
+     * HTTP 401: The authentication token is invalid or revoked
+     * MUST trigger unpair - device needs to re-pair
      */
     data object TokenInvalid : StationStatus()
+    
+    /**
+     * HTTP 403: Feature is disabled (e.g., subscription lapsed)
+     * MUST remain paired - device should lock but NEVER unpair
+     * Token remains valid, polling continues
+     */
+    data object FeatureDisabled : StationStatus()
+    
+    /**
+     * HTTP 429: Rate limited by backend
+     * Device should back off polling but remain paired
+     */
+    data class RateLimited(val retryAfterSeconds: Int = 60) : StationStatus()
     
     /**
      * Determines if the TV should be locked based on this status

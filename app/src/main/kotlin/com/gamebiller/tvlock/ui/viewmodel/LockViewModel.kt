@@ -39,6 +39,7 @@ class LockViewModel @Inject constructor(
     private var gracePeriodActive = false
     private var lastKnownStatus: StationStatus = StationStatus.Unknown
     private var consecutiveFailures = 0
+    private var rateLimitBackoffSeconds = 0  // For HTTP 429 handling
     
     companion object {
         private const val POLLING_INTERVAL_MS = 12_000L // 12 seconds
@@ -86,7 +87,15 @@ class LockViewModel @Inject constructor(
                     if (isPaired) {
                         // Device is paired - poll status
                         pollStationStatus()
-                        delay(POLLING_INTERVAL_MS)
+                        
+                        // Respect rate limit backoff if set (HTTP 429)
+                        val delayMs = if (rateLimitBackoffSeconds > 0) {
+                            Timber.d("Rate limit active, backing off for ${rateLimitBackoffSeconds}s")
+                            rateLimitBackoffSeconds * 1000L
+                        } else {
+                            POLLING_INTERVAL_MS
+                        }
+                        delay(delayMs)
                     } else {
                         // Device not paired - ensure state is updated
                         if (_lockState.value !is LockState.Unpaired) {
@@ -103,44 +112,93 @@ class LockViewModel @Inject constructor(
     
     /**
      * Poll station status once
+     * 
+     * BACKEND CONTRACT HANDLING:
+     * - TokenInvalid (401) → MUST unpair device
+     * - FeatureDisabled (403) → Lock screen, NEVER unpair, continue polling
+     * - RateLimited (429) → Lock screen, back off polling, NEVER unpair
+     * - Unknown (5xx/network) → Grace period then lock, NEVER unpair
+     * - Normal statuses → Lock/unlock as appropriate
      */
     private suspend fun pollStationStatus() {
         val deviceInfo = repository.getDeviceInfo().first() ?: return
         val status = repository.getStationStatus()
         
-        // Check if we got a valid response
-        if (status == StationStatus.TokenInvalid) {
-            Timber.w("Token invalid or device deleted from backend - Unpairing device")
-            repository.unpairDevice()
-            return
-        } else if (status == StationStatus.Unknown) {
-            consecutiveFailures++
-            Timber.w("Failed to get station status (failure $consecutiveFailures/$MAX_CONSECUTIVE_FAILURES)")
-                        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-                // LOCK immediately if not running, otherwise try grace period
-                if (lastKnownStatus !is StationStatus.Running) {
-                    updateLockState(
-                        StationStatus.Unknown,
-                        deviceInfo.shopName,
-                        deviceInfo.stationName,
-                        deviceInfo.deviceId,
-                        deviceInfo.stationId
-                    )
-                } else {
-                    // Start grace period only if not already active
-                    startGracePeriod(deviceInfo.shopName, deviceInfo.stationName, deviceInfo.deviceId, deviceInfo.stationId)
+        when (status) {
+            // HTTP 401: Token revoked - ONLY case that triggers unpair
+            is StationStatus.TokenInvalid -> {
+                Timber.w("HTTP 401: Token invalid/revoked - Unpairing device")
+                repository.unpairDevice()
+                _lockState.value = LockState.Unpaired
+                return
+            }
+            
+            // HTTP 403: Feature disabled (subscription lapsed, etc.)
+            // CRITICAL: NEVER unpair on 403 - device stays paired, just lock
+            is StationStatus.FeatureDisabled -> {
+                Timber.w("HTTP 403: Feature disabled - Locking but STAYING PAIRED")
+                resetFailure() // Not a failure, just a controlled state
+                updateLockState(
+                    status,
+                    deviceInfo.shopName,
+                    deviceInfo.stationName,
+                    deviceInfo.deviceId,
+                    deviceInfo.stationId
+                )
+                lastKnownStatus = status
+                // Continue normal polling - feature may be re-enabled
+            }
+            
+            // HTTP 429: Rate limited - back off polling
+            // CRITICAL: NEVER unpair on 429
+            is StationStatus.RateLimited -> {
+                Timber.w("HTTP 429: Rate limited - Backing off for ${status.retryAfterSeconds}s")
+                resetFailure() // Not a failure, just rate limiting
+                updateLockState(
+                    status,
+                    deviceInfo.shopName,
+                    deviceInfo.stationName,
+                    deviceInfo.deviceId,
+                    deviceInfo.stationId
+                )
+                // Back off polling for the specified duration
+                rateLimitBackoffSeconds = status.retryAfterSeconds
+            }
+            
+            // Network error / Unknown status - use grace period logic
+            is StationStatus.Unknown -> {
+                consecutiveFailures++
+                Timber.w("Failed to get station status (failure $consecutiveFailures/$MAX_CONSECUTIVE_FAILURES)")
+                if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+                    // LOCK immediately if not running, otherwise try grace period
+                    if (lastKnownStatus !is StationStatus.Running) {
+                        updateLockState(
+                            StationStatus.Unknown,
+                            deviceInfo.shopName,
+                            deviceInfo.stationName,
+                            deviceInfo.deviceId,
+                            deviceInfo.stationId
+                        )
+                    } else {
+                        // Start grace period only if not already active
+                        startGracePeriod(deviceInfo.shopName, deviceInfo.stationName, deviceInfo.deviceId, deviceInfo.stationId)
+                    }
                 }
             }
-        } else {
-            // Valid response received - RESET failure counters
-            resetFailure()
             
-            updateLockState(status, deviceInfo.shopName, deviceInfo.stationName, deviceInfo.deviceId, deviceInfo.stationId)
-            lastKnownStatus = status
-            
-            // Explicitly trigger flush since Repository no longer does it
-            viewModelScope.launch {
-                repository.flushAuditLogs()
+            // Normal status responses (RUNNING, STOPPED, PAUSED, NOT_STARTED)
+            else -> {
+                // Valid response received - RESET failure counters and rate limit
+                resetFailure()
+                rateLimitBackoffSeconds = 0
+                
+                updateLockState(status, deviceInfo.shopName, deviceInfo.stationName, deviceInfo.deviceId, deviceInfo.stationId)
+                lastKnownStatus = status
+                
+                // Explicitly trigger flush since Repository no longer does it
+                viewModelScope.launch {
+                    repository.flushAuditLogs()
+                }
             }
         }
     }
@@ -213,6 +271,10 @@ class LockViewModel @Inject constructor(
     
     /**
      * Update lock state based on station status
+     * 
+     * NOTE: This function ONLY handles lock screen display.
+     * It does NOT trigger unpair - that is handled separately in pollStationStatus()
+     * for TokenInvalid ONLY.
      */
     private fun updateLockState(
         status: StationStatus,
@@ -228,6 +290,10 @@ class LockViewModel @Inject constructor(
                 is StationStatus.Paused -> com.gamebiller.tvlock.domain.model.LockReason.SESSION_PAUSED
                 is StationStatus.NotStarted -> com.gamebiller.tvlock.domain.model.LockReason.SESSION_NOT_STARTED
                 is StationStatus.TokenInvalid -> com.gamebiller.tvlock.domain.model.LockReason.TOKEN_INVALID
+                // HTTP 403: Feature disabled - lock but NEVER unpair
+                is StationStatus.FeatureDisabled -> com.gamebiller.tvlock.domain.model.LockReason.FEATURE_DISABLED
+                // HTTP 429: Rate limited - lock temporarily, NEVER unpair
+                is StationStatus.RateLimited -> com.gamebiller.tvlock.domain.model.LockReason.RATE_LIMITED
                 else -> com.gamebiller.tvlock.domain.model.LockReason.SESSION_NOT_ACTIVE
             }
             LockState.Locked(reason, shopName, stationName)
