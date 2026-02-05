@@ -51,3 +51,15 @@
 -keep class androidx.lifecycle.** { *; }
 -keep class androidx.startup.** { *; }
 
+# Android Security Crypto (EncryptedSharedPreferences)
+-keep class androidx.security.crypto.** { *; }
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**
+-keepclassmembers class * extends com.google.crypto.tink.shaded.protobuf.GeneratedMessageLite {
+    <fields>;
+}
+
+# Tink uses reflection for key management
+-keep class com.google.crypto.tink.proto.** { *; }
+-keep class * extends com.google.crypto.tink.KeyTypeManager { *; }
+-keep class * extends com.google.crypto.tink.Registry { *; }
